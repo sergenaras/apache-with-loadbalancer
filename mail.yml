@@ -65,7 +65,7 @@
         service: name=httpd state=started enabled=yes
       - name: Creating template
         template:
-          src: ./config/lb-config.j2
+          src: ./lb-config.j2
           dest: /etc/httpd/conf.d/lb.conf
           owner: bin
           group: wheel
