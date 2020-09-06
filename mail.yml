@@ -1,0 +1,79 @@
+# mail.yml
+
+---
+  - hosts: webservers:loadbalancer
+    become: true
+    tasks:
+      - name: Disable SELinux
+        selinux:
+          state: disabled
+      - name: Open 80 port
+        firewalld:
+          port: 80/tcp
+          permanent: yes
+          state: enabled
+        notify: restart firewalld
+      - name: YUM Update
+        yum: name=* state=latest
+    handlers:
+      - name: restart firewalld
+        service:
+          name: firewalld
+          state: restarted
+
+  - hosts: webservers
+    become: true
+    vars:
+      path_to_app: "/var/www/html"
+    tasks:
+      - name: Installing services
+        yum:
+          name:
+            - httpd
+            - php
+          state: present
+      - name: Ensure apache and php start
+        service: name=httpd state=started enabled=yes
+      - name: Uploading PHP files
+        copy:
+          src: ./index.php
+          dest: "{{path_to_app}}"
+          remote_src: no
+          mode: preserve
+      - name: Create simple info page
+        copy:
+          dest: "{{path_to_app}}/info.php"
+          content: "<h1> Info about our webservers {{ansible_hostname}} </h1>"
+      - name: Configure php.ini file
+        lineinfile:
+          path: /etc/php.ini
+          regexp: ^short_open_tag
+          line: 'short_open_tag=On'
+        notify: restart apache
+    handlers:
+      - name: restart apache
+        service:
+          name: httpd
+          state: restarted
+
+  - hosts: loadbalancer
+    become: true
+    tasks:
+      - name: Installing apache
+        yum: name=httpd state=present
+      - name: Ensure apache restart
+        service: name=httpd state=started enabled=yes
+      - name: Creating template
+        template:
+          src: ./config/lb-config.j2
+          dest: /etc/httpd/conf.d/lb.conf
+          owner: bin
+          group: wheel
+          mode: 064
+          notify: restart apache
+    handlers:
+      - name: restart apache
+        service:
+          name: httpd
+          state: restarted
+          
