@@ -1,0 +1,15 @@
+# lb-config.j2
+
+ProxyRequests off
+<Proxy balancer://webcluster>
+    {% for hosts in groups['webservers'] %}
+    BalancerMember http://{{ hostvars[hosts]['ansible_host']}}/index.php
+    {% endfor %}
+</Proxy>
+
+<Location /balabcer-manager>
+    SetHandler balancer-manager
+</Location>
+
+ProxyPass /balancer-manager !
+ProxyPass / balancer://webcluster/
