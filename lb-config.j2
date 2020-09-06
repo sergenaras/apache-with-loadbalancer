@@ -3,7 +3,7 @@
 ProxyRequests off
 <Proxy balancer://webcluster>
     {% for hosts in groups['webservers'] %}
-    BalancerMember http://{{ hostvars[hosts]['ansible_host']}}/index.php
+    BalancerMember http://{{ hostvars[hosts]['ansible_host']}}
     {% endfor %}
 </Proxy>
 
